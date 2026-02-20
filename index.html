@@ -23,6 +23,7 @@
       border-radius: 12px;
     }
     h1 { font-size: 1.5rem; color: #e94560; }
+    .header-actions { display: flex; gap: 10px; }
     .btn {
       padding: 10px 20px;
       border: none;
@@ -35,6 +36,8 @@
     .btn-primary:hover { background: #d63d56; }
     .btn-secondary { background: #0f3460; color: white; }
     .btn-secondary:hover { background: #1a4a7a; }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-warning { background: #f39c12; color: white; }
     
     .board {
       display: flex;
@@ -43,11 +46,11 @@
       padding-bottom: 20px;
     }
     .column {
-      flex: 0 0 320px;
+      flex: 0 0 300px;
       background: #16213e;
       border-radius: 12px;
       padding: 16px;
-      min-height: 500px;
+      min-height: 450px;
     }
     .column-header {
       display: flex;
@@ -67,11 +70,14 @@
       border-radius: 12px;
       font-size: 0.85rem;
     }
+    .column-ready { border-top: 4px solid #9b59b6; }
     .column-todo { border-top: 4px solid #e94560; }
     .column-inprogress { border-top: 4px solid #f39c12; }
+    .column-checking { border-top: 4px solid #3498db; }
     .column-done { border-top: 4px solid #27ae60; }
+    .column-waiting { border-top: 4px solid #e67e22; }
     
-    .cards { min-height: 400px; }
+    .cards { min-height: 350px; }
     .card {
       background: #0f3460;
       border-radius: 8px;
@@ -83,15 +89,66 @@
     }
     .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     .card:active { cursor: grabbing; }
-    .card-title { font-weight: 500; margin-bottom: 8px; }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .card-title { font-weight: 500; flex: 1; margin-right: 8px; }
+    .card-creator {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #1a1a2e;
+      color: #aaa;
+    }
+    .card-creator.tt { color: #e94560; }
+    .card-creator.shoung { color: #3498db; }
+    
     .card-desc { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; }
+    
+    .card-remark {
+      background: #1a2a4e;
+      border-left: 3px solid #f39c12;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 0 4px 4px 0;
+      font-size: 0.85rem;
+    }
+    .card-remark-label {
+      font-size: 0.7rem;
+      color: #f39c12;
+      margin-bottom: 4px;
+    }
+    
     .card-meta {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.8rem;
-      color: #777;
+      font-size: 0.75rem;
+      color: #666;
     }
+    
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .card-action-btn {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #1a1a2e;
+      color: #888;
+      transition: all 0.2s;
+    }
+    .card-action-btn:hover { background: #2a3a5e; color: #eee; }
+    .card-action-btn.delete:hover { background: #c0392b; }
+    
     .card-delete {
       position: absolute;
       top: 10px;
@@ -107,11 +164,10 @@
     .card:hover .card-delete { opacity: 1; }
     .card-delete:hover { color: #e94560; }
     
-    .add-card-form {
-      margin-top: 12px;
-    }
+    .add-card-form { margin-top: 12px; }
+    .add-card-row { display: flex; gap: 8px; margin-bottom: 8px; }
     .add-card-input {
-      width: 100%;
+      flex: 1;
       padding: 10px;
       border: 2px solid #0f3460;
       border-radius: 8px;
@@ -120,10 +176,19 @@
       font-size: 0.95rem;
     }
     .add-card-input:focus { outline: none; border-color: #e94560; }
+    .add-card-input::placeholder { color: #555; }
+    
+    .creator-select {
+      padding: 10px;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 0.9rem;
+    }
     
     .add-card-btn {
       width: 100%;
-      margin-top: 8px;
       padding: 8px;
       background: #0f3460;
       border: 2px dashed #333;
@@ -143,6 +208,129 @@
       padding: 40px 20px;
     }
     
+    /* Recurring Tasks Section */
+    .recurring-section {
+      margin-top: 40px;
+      padding: 20px;
+      background: #16213e;
+      border-radius: 12px;
+    }
+    .recurring-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .recurring-title {
+      font-size: 1.2rem;
+      color: #e94560;
+    }
+    .recurring-tasks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .recurring-task {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #0f3460;
+      border-radius: 8px;
+    }
+    .recurring-task-name { flex: 1; }
+    .recurring-task-toggle {
+      width: 40px;
+      height: 20px;
+      background: #333;
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .recurring-task-toggle.active { background: #27ae60; }
+    .recurring-task-toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+    .recurring-task-toggle.active::after { transform: translateX(20px); }
+    .recurring-task-delete {
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .recurring-task-delete:hover { color: #e94560; }
+    
+    .add-recurring-form {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      color: #e94560;
+    }
+    .modal-field {
+      margin-bottom: 16px;
+    }
+    .modal-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    .modal-input, .modal-textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 0.95rem;
+    }
+    .modal-textarea { min-height: 100px; resize: vertical; }
+    .modal-input:focus, .modal-textarea:focus { outline: none; border-color: #e94560; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    
     .last-updated {
       text-align: center;
       margin-top: 30px;
@@ -154,56 +342,138 @@
 <body>
   <header>
     <h1>📋 OpenClaw 工作看板</h1>
-    <button class="btn btn-secondary" onclick="exportData()">💾 匯出資料</button>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="exportData()">💾 匯出</button>
+    </div>
   </header>
   
   <div class="board">
+    <div class="column column-ready">
+      <div class="column-header">
+        <span class="column-title">📝 Ready</span>
+        <span class="column-count" id="ready-count">0</span>
+      </div>
+      <div class="cards" id="ready" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'ready')">
+        <div class="empty-state" id="ready-empty">等待放任務...</div>
+      </div>
+      <div class="add-card-form">
+        <div class="add-card-row">
+          <input type="text" class="add-card-input" id="ready-title" placeholder="任務標題...">
+          <select class="creator-select" id="ready-creator">
+            <option value="Shoung">Shoung</option>
+            <option value="TT">TT</option>
+          </select>
+        </div>
+        <input type="text" class="add-card-input" id="ready-desc" placeholder="任務描述（可選）" style="margin-bottom: 8px;">
+        <button class="add-card-btn" onclick="addCard('ready')">+ 新增任務</button>
+      </div>
+    </div>
+    
     <div class="column column-todo">
       <div class="column-header">
-        <span class="column-title">📝 待辦</span>
+        <span class="column-title">📋 To Do</span>
         <span class="column-count" id="todo-count">0</span>
       </div>
       <div class="cards" id="todo" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'todo')">
         <div class="empty-state" id="todo-empty">尚無待辦事項</div>
       </div>
       <div class="add-card-form">
-        <input type="text" class="add-card-input" id="todo-input" placeholder="+ 新增待辦事項..." onkeypress="handleKeyPress(event, 'todo')">
+        <input type="text" class="add-card-input" id="todo-input" placeholder="+ 新增..." onkeypress="handleKeyPress(event, 'todo')">
       </div>
     </div>
     
     <div class="column column-inprogress">
       <div class="column-header">
-        <span class="column-title">🔥 進行中</span>
+        <span class="column-title">🔥 In Progress</span>
         <span class="column-count" id="inprogress-count">0</span>
       </div>
       <div class="cards" id="inprogress" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'inprogress')">
         <div class="empty-state" id="inprogress-empty">尚無進行中事項</div>
       </div>
-      <div class="add-card-form">
-        <input type="text" class="add-card-input" id="inprogress-input" placeholder="+ 新增進行中事項..." onkeypress="handleKeyPress(event, 'inprogress')">
+    </div>
+    
+    <div class="column column-checking">
+      <div class="column-header">
+        <span class="column-title">👀 Checking</span>
+        <span class="column-count" id="checking-count">0</span>
+      </div>
+      <div class="cards" id="checking" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'checking')">
+        <div class="empty-state" id="checking-empty">等待檢查...</div>
       </div>
     </div>
     
     <div class="column column-done">
       <div class="column-header">
-        <span class="column-title">✅ 已完成</span>
+        <span class="column-title">✅ Finished</span>
         <span class="column-count" id="done-count">0</span>
       </div>
       <div class="cards" id="done" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'done')">
         <div class="empty-state" id="done-empty">尚無已完成事項</div>
       </div>
-      <div class="add-card-form">
-        <input type="text" class="add-card-input" id="done-input" placeholder="+ 新增已完成事項..." onkeypress="handleKeyPress(event, 'done')">
+    </div>
+    
+    <div class="column column-waiting">
+      <div class="column-header">
+        <span class="column-title">⏸️ Waiting</span>
+        <span class="column-count" id="waiting-count">0</span>
       </div>
+      <div class="cards" id="waiting" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'waiting')">
+        <div class="empty-state" id="waiting-empty">無卡關事項</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Recurring Tasks Section -->
+  <div class="recurring-section">
+    <div class="recurring-header">
+      <span class="recurring-title">🔄 TT 的定期任務</span>
+    </div>
+    <div class="recurring-tasks" id="recurring-tasks"></div>
+    <div class="add-recurring-form">
+      <input type="text" class="add-card-input" id="recurring-task-input" placeholder="新增定期任務...">
+      <button class="btn btn-primary" onclick="addRecurringTask()">新增</button>
     </div>
   </div>
   
   <div class="last-updated" id="last-updated"></div>
 
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <div class="modal-title">編輯任務</div>
+      <div class="modal-field">
+        <label class="modal-label">標題</label>
+        <input type="text" class="modal-input" id="modal-title">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">描述</label>
+        <input type="text" class="modal-input" id="modal-desc">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">備註（溝通用）</label>
+        <textarea class="modal-textarea" id="modal-remark" placeholder="寫下問題、想法或備註..."></textarea>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">創建者</label>
+        <select class="creator-select" id="modal-creator" style="width:100%">
+          <option value="Shoung">Shoung</option>
+          <option value="TT">TT</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveModal()">儲存</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = 'openclaw-kanban-data';
+    const RECURRING_KEY = 'openclaw-recurring-tasks';
     let cards = [];
+    let recurringTasks = [];
     let draggedCard = null;
+    let editingCardId = null;
     
     // 初始化
     function init() {
@@ -217,9 +487,18 @@
       if (saved) {
         cards = JSON.parse(saved);
       } else {
-        // 預設範例資料
         cards = [
-          { id: 1, title: '歡迎使用看板', desc: '拖曳卡片來管理任務', column: 'todo', createdAt: new Date().toISOString() }
+          { id: 1, title: '歡迎使用看板', desc: '拖曳卡片來管理任務', remark: '', column: 'ready', creator: 'Shoung', createdAt: new Date().toISOString() }
+        ];
+      }
+      
+      const savedRecurring = localStorage.getItem(RECURRING_KEY);
+      if (savedRecurring) {
+        recurringTasks = JSON.parse(savedRecurring);
+      } else {
+        recurringTasks = [
+          { id: 1, name: '每2小時檢查看板', active: true },
+          { id: 2, name: '每週 ProductHunt 靈感搜尋', active: true }
         ];
       }
     }
@@ -227,12 +506,14 @@
     // 儲存資料
     function saveData() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+      localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringTasks));
       document.getElementById('last-updated').textContent = `最後更新: ${new Date().toLocaleString('zh-TW')}`;
     }
     
     // 渲染看板
     function render() {
-      ['todo', 'inprogress', 'done'].forEach(column => {
+      const columns = ['ready', 'todo', 'inprogress', 'checking', 'done', 'waiting'];
+      columns.forEach(column => {
         const container = document.getElementById(column);
         const columnCards = cards.filter(c => c.column === column);
         
@@ -241,49 +522,113 @@
         
         // 顯示/隱藏空狀態
         const emptyState = document.getElementById(`${column}-empty`);
-        emptyState.style.display = columnCards.length === 0 ? 'block' : 'none';
+        if (emptyState) {
+          emptyState.style.display = columnCards.length === 0 ? 'block' : 'none';
+        }
         
         // 渲染卡片
         const cardsHtml = columnCards.map(card => `
           <div class="card" draggable="true" ondragstart="handleDragStart(event, ${card.id})" ondragend="handleDragEnd(event)">
             <button class="card-delete" onclick="deleteCard(${card.id})">×</button>
-            <div class="card-title">${escapeHtml(card.title)}</div>
+            <div class="card-header">
+              <span class="card-title">${escapeHtml(card.title)}</span>
+              <span class="card-creator ${card.creator?.toLowerCase()}">${card.creator || '?'}</span>
+            </div>
             ${card.desc ? `<div class="card-desc">${escapeHtml(card.desc)}</div>` : ''}
+            ${card.remark ? `
+              <div class="card-remark">
+                <div class="card-remark-label">💬 備註</div>
+                ${escapeHtml(card.remark)}
+              </div>
+            ` : ''}
             <div class="card-meta">
               <span>${formatDate(card.createdAt)}</span>
+            </div>
+            <div class="card-actions">
+              <button class="card-action-btn" onclick="openEditModal(${card.id})">✏️ 編輯</button>
+              ${card.column === 'waiting' ? `<button class="card-action-btn" onclick="clearRemark(${card.id})">💬 清除備註</button>` : ''}
             </div>
           </div>
         `).join('');
         
-        container.innerHTML = cardsHtml + `<div class="empty-state" id="${column}-empty" style="display: none;">尚無事項</div>`;
+        // Keep the empty state element
+        container.innerHTML = cardsHtml + (document.getElementById(`${column}-empty`)?.outerHTML || '');
       });
+      
+      // 渲染定期任務
+      renderRecurringTasks();
+    }
+    
+    // 渲染定期任務
+    function renderRecurringTasks() {
+      const container = document.getElementById('recurring-tasks');
+      container.innerHTML = recurringTasks.map(task => `
+        <div class="recurring-task">
+          <span class="recurring-task-name">${escapeHtml(task.name)}</span>
+          <div class="recurring-task-toggle ${task.active ? 'active' : ''}" onclick="toggleRecurringTask(${task.id})"></div>
+          <button class="recurring-task-delete" onclick="deleteRecurringTask(${task.id})">×</button>
+        </div>
+      `).join('');
     }
     
     // 新增卡片
     function addCard(column) {
-      const input = document.getElementById(`${column}-input`);
-      const title = input.value.trim();
+      const titleInput = document.getElementById(`${column}-title`);
+      const descInput = document.getElementById(`${column}-desc`);
+      const creatorSelect = document.getElementById(`${column}-creator`);
+      
+      let title, desc, creator;
+      
+      if (column === 'ready') {
+        title = titleInput?.value.trim();
+        desc = descInput?.value.trim();
+        creator = creatorSelect?.value;
+      } else {
+        const input = document.getElementById(`${column}-input`);
+        title = input?.value.trim();
+        creator = 'TT';
+      }
+      
       if (!title) return;
       
       const card = {
         id: Date.now(),
         title: title,
-        desc: '',
+        desc: desc || '',
+        remark: '',
         column: column,
+        creator: creator,
         createdAt: new Date().toISOString()
       };
       
       cards.push(card);
       saveData();
       render();
-      input.value = '';
+      
+      // 清除輸入
+      if (titleInput) titleInput.value = '';
+      if (descInput) descInput.value = '';
+      if (descInput = document.getElementById(`${column}-desc`)) descInput.value = '';
+      const input = document.getElementById(`${column}-input`);
+      if (input) input.value = '';
     }
     
     // 刪除卡片
     function deleteCard(id) {
+      if (!confirm('確定要刪除這個任務嗎？')) return;
       cards = cards.filter(c => c.id !== id);
       saveData();
       render();
+    }
+    
+    // 清除備註
+    function clearRemark(id) {
+      const card = cards.find(c => c.id === id);
+      if (card) {
+        card.remark = '';
+        saveData();
+        render();
+      }
     }
     
     // 拖曳開始
@@ -324,10 +669,83 @@
       }
     }
     
+    // 開啟編輯 Modal
+    function openEditModal(id) {
+      editingCardId = id;
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      
+      document.getElementById('modal-title').value = card.title;
+      document.getElementById('modal-desc').value = card.desc || '';
+      document.getElementById('modal-remark').value = card.remark || '';
+      document.getElementById('modal-creator').value = card.creator || 'Shoung';
+      document.getElementById('edit-modal').classList.add('show');
+    }
+    
+    // 關閉 Modal
+    function closeModal() {
+      document.getElementById('edit-modal').classList.remove('show');
+      editingCardId = null;
+    }
+    
+    // 儲存 Modal
+    function saveModal() {
+      if (!editingCardId) return;
+      
+      const card = cards.find(c => c.id === editingCardId);
+      if (card) {
+        card.title = document.getElementById('modal-title').value.trim();
+        card.desc = document.getElementById('modal-desc').value.trim();
+        card.remark = document.getElementById('modal-remark').value.trim();
+        card.creator = document.getElementById('modal-creator').value;
+        saveData();
+        render();
+      }
+      closeModal();
+    }
+    
+    // 新增定期任務
+    function addRecurringTask() {
+      const input = document.getElementById('recurring-task-input');
+      const name = input.value.trim();
+      if (!name) return;
+      
+      recurringTasks.push({
+        id: Date.now(),
+        name: name,
+        active: true
+      });
+      saveData();
+      renderRecurringTasks();
+      input.value = '';
+    }
+    
+    // 切換定期任務
+    function toggleRecurringTask(id) {
+      const task = recurringTasks.find(t => t.id === id);
+      if (task) {
+        task.active = !task.active;
+        saveData();
+        renderRecurringTasks();
+      }
+    }
+    
+    // 刪除定期任務
+    function deleteRecurringTask(id) {
+      if (!confirm('確定要刪除這個定期任務嗎？')) return;
+      recurringTasks = recurringTasks.filter(t => t.id !== id);
+      saveData();
+      renderRecurringTasks();
+    }
+    
     // 匯出資料
     function exportData() {
-      const data = JSON.stringify(cards, null, 2);
-      const blob = new Blob([data], { type: 'application/json' });
+      const data = {
+        cards: cards,
+        recurringTasks: recurringTasks,
+        exportedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
