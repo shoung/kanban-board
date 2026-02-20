@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw 工作看板</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #16213e;
+      border-radius: 12px;
+    }
+    h1 { font-size: 1.5rem; color: #e94560; }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #e94560; color: white; }
+    .btn-primary:hover { background: #d63d56; }
+    .btn-secondary { background: #0f3460; color: white; }
+    .btn-secondary:hover { background: #1a4a7a; }
+    
+    .board {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding-bottom: 20px;
+    }
+    .column {
+      flex: 0 0 320px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 500px;
+    }
+    .column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #0f3460;
+    }
+    .column-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .column-count {
+      background: #0f3460;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+    .column-todo { border-top: 4px solid #e94560; }
+    .column-inprogress { border-top: 4px solid #f39c12; }
+    .column-done { border-top: 4px solid #27ae60; }
+    
+    .cards { min-height: 400px; }
+    .card {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+      cursor: grab;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .card:active { cursor: grabbing; }
+    .card-title { font-weight: 500; margin-bottom: 8px; }
+    .card-desc { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; }
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #777;
+    }
+    .card-delete {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 1.2rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .card:hover .card-delete { opacity: 1; }
+    .card-delete:hover { color: #e94560; }
+    
+    .add-card-form {
+      margin-top: 12px;
+    }
+    .add-card-input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 0.95rem;
+    }
+    .add-card-input:focus { outline: none; border-color: #e94560; }
+    
+    .add-card-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px;
+      background: #0f3460;
+      border: 2px dashed #333;
+      border-radius: 8px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .add-card-btn:hover { border-color: #e94560; color: #e94560; }
+    
+    .card.dragging { opacity: 0.5; transform: rotate(3deg); }
+    .column.drag-over { background: #1a2a4e; }
+    
+    .empty-state {
+      text-align: center;
+      color: #555;
+      padding: 40px 20px;
+    }
+    
+    .last-updated {
+      text-align: center;
+      margin-top: 30px;
+      color: #555;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📋 OpenClaw 工作看板</h1>
+    <button class="btn btn-secondary" onclick="exportData()">💾 匯出資料</button>
+  </header>
+  
+  <div class="board">
+    <div class="column column-todo">
+      <div class="column-header">
+        <span class="column-title">📝 待辦</span>
+        <span class="column-count" id="todo-count">0</span>
+      </div>
+      <div class="cards" id="todo" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'todo')">
+        <div class="empty-state" id="todo-empty">尚無待辦事項</div>
+      </div>
+      <div class="add-card-form">
+        <input type="text" class="add-card-input" id="todo-input" placeholder="+ 新增待辦事項..." onkeypress="handleKeyPress(event, 'todo')">
+      </div>
+    </div>
+    
+    <div class="column column-inprogress">
+      <div class="column-header">
+        <span class="column-title">🔥 進行中</span>
+        <span class="column-count" id="inprogress-count">0</span>
+      </div>
+      <div class="cards" id="inprogress" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'inprogress')">
+        <div class="empty-state" id="inprogress-empty">尚無進行中事項</div>
+      </div>
+      <div class="add-card-form">
+        <input type="text" class="add-card-input" id="inprogress-input" placeholder="+ 新增進行中事項..." onkeypress="handleKeyPress(event, 'inprogress')">
+      </div>
+    </div>
+    
+    <div class="column column-done">
+      <div class="column-header">
+        <span class="column-title">✅ 已完成</span>
+        <span class="column-count" id="done-count">0</span>
+      </div>
+      <div class="cards" id="done" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'done')">
+        <div class="empty-state" id="done-empty">尚無已完成事項</div>
+      </div>
+      <div class="add-card-form">
+        <input type="text" class="add-card-input" id="done-input" placeholder="+ 新增已完成事項..." onkeypress="handleKeyPress(event, 'done')">
+      </div>
+    </div>
+  </div>
+  
+  <div class="last-updated" id="last-updated"></div>
+
+  <script>
+    const STORAGE_KEY = 'openclaw-kanban-data';
+    let cards = [];
+    let draggedCard = null;
+    
+    // 初始化
+    function init() {
+      loadData();
+      render();
+    }
+    
+    // 載入資料
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        cards = JSON.parse(saved);
+      } else {
+        // 預設範例資料
+        cards = [
+          { id: 1, title: '歡迎使用看板', desc: '拖曳卡片來管理任務', column: 'todo', createdAt: new Date().toISOString() }
+        ];
+      }
+    }
+    
+    // 儲存資料
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+      document.getElementById('last-updated').textContent = `最後更新: ${new Date().toLocaleString('zh-TW')}`;
+    }
+    
+    // 渲染看板
+    function render() {
+      ['todo', 'inprogress', 'done'].forEach(column => {
+        const container = document.getElementById(column);
+        const columnCards = cards.filter(c => c.column === column);
+        
+        // 更新數量
+        document.getElementById(`${column}-count`).textContent = columnCards.length;
+        
+        // 顯示/隱藏空狀態
+        const emptyState = document.getElementById(`${column}-empty`);
+        emptyState.style.display = columnCards.length === 0 ? 'block' : 'none';
+        
+        // 渲染卡片
+        const cardsHtml = columnCards.map(card => `
+          <div class="card" draggable="true" ondragstart="handleDragStart(event, ${card.id})" ondragend="handleDragEnd(event)">
+            <button class="card-delete" onclick="deleteCard(${card.id})">×</button>
+            <div class="card-title">${escapeHtml(card.title)}</div>
+            ${card.desc ? `<div class="card-desc">${escapeHtml(card.desc)}</div>` : ''}
+            <div class="card-meta">
+              <span>${formatDate(card.createdAt)}</span>
+            </div>
+          </div>
+        `).join('');
+        
+        container.innerHTML = cardsHtml + `<div class="empty-state" id="${column}-empty" style="display: none;">尚無事項</div>`;
+      });
+    }
+    
+    // 新增卡片
+    function addCard(column) {
+      const input = document.getElementById(`${column}-input`);
+      const title = input.value.trim();
+      if (!title) return;
+      
+      const card = {
+        id: Date.now(),
+        title: title,
+        desc: '',
+        column: column,
+        createdAt: new Date().toISOString()
+      };
+      
+      cards.push(card);
+      saveData();
+      render();
+      input.value = '';
+    }
+    
+    // 刪除卡片
+    function deleteCard(id) {
+      cards = cards.filter(c => c.id !== id);
+      saveData();
+      render();
+    }
+    
+    // 拖曳開始
+    function handleDragStart(event, id) {
+      draggedCard = cards.find(c => c.id === id);
+      event.target.classList.add('dragging');
+    }
+    
+    // 拖曳結束
+    function handleDragEnd(event) {
+      event.target.classList.remove('dragging');
+      document.querySelectorAll('.column').forEach(col => col.classList.remove('drag-over'));
+    }
+    
+    // 拖曳經過
+    function handleDragOver(event) {
+      event.preventDefault();
+      event.currentTarget.classList.add('drag-over');
+    }
+    
+    // 放置
+    function handleDrop(event, column) {
+      event.preventDefault();
+      event.currentTarget.classList.remove('drag-over');
+      
+      if (draggedCard) {
+        draggedCard.column = column;
+        saveData();
+        render();
+        draggedCard = null;
+      }
+    }
+    
+    // 鍵盤事件
+    function handleKeyPress(event, column) {
+      if (event.key === 'Enter') {
+        addCard(column);
+      }
+    }
+    
+    // 匯出資料
+    function exportData() {
+      const data = JSON.stringify(cards, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'kanban-backup.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    // 工具函數
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+    
+    init();
+  </script>
+</body>
+</html>

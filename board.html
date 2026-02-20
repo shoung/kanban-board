@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TT's Task Kanban Board</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0f1419; --card-bg: #192734; --card-hover: #22303c; --border: #38444d; --text: #ffffff; --text-secondary: #8899a6; --accent: #1d9bf0; --ready: #ffd700; --todo: #00ba7c; --inprogress: #f91880; --checking: #ff7a00; --waiting: #8b5cf6; --finished: #00ba7c; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans TC', 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+        h1 { text-align: center; padding: 20px 0 30px; font-size: 28px; background: linear-gradient(90deg, var(--accent), #00d199, var(--checking)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 20px; min-height: 60vh; }
+        .column { flex: 0 0 280px; background: #151f27; border-radius: 12px; padding: 12px; min-height: 400px; max-height: 70vh; display: flex; flex-direction: column; }
+        .column-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 8px; border-bottom: 2px solid var(--border); margin-bottom: 12px; }
+        .column-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .column-title .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .ready .dot { background: var(--ready); }
+        .todo .dot { background: var(--todo); }
+        .inprogress .dot { background: var(--inprogress); }
+        .checking .dot { background: var(--checking); }
+        .waiting .dot { background: var(--waiting); }
+        .finished .dot { background: var(--finished); }
+        .count { background: var(--border); padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+        .card-list { flex: 1; overflow-y: auto; min-height: 100px; }
+        .card { background: var(--card-bg); border-radius: 8px; padding: 12px; margin-bottom: 8px; cursor: grab; transition: all 0.2s; border: 1px solid transparent; }
+        .card:hover { background: var(--card-hover); border-color: var(--border); }
+        .card.dragging { opacity: 0.5; transform: rotate(3deg); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .card-title { font-size: 14px; font-weight: 500; flex: 1; }
+        .card-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+        .card:hover .card-actions { opacity: 1; }
+        .btn-icon { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; border-radius: 4px; font-size: 12px; }
+        .btn-icon:hover { background: var(--border); color: var(--text); }
+        .btn-icon.delete:hover { color: #f4212e; }
+        .card-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
+        .card-note { margin-top: 8px; padding: 8px; background: rgba(139, 92, 246, 0.2); border-left: 3px solid var(--waiting); border-radius: 4px; font-size: 12px; color: #a78bfa; }
+        .add-card { display: flex; align-items: center; justify-content: center; padding: 10px; color: var(--text-secondary); cursor: pointer; border-radius: 8px; border: 1px dashed var(--border); margin-top: 8px; font-size: 13px; transition: all 0.2s; }
+        .add-card:hover { border-color: var(--accent); color: var(--accent); }
+        .bottom-section { margin-top: 30px; display: flex; gap: 20px; }
+        .scheduled-tasks { flex: 1; background: #151f27; border-radius: 12px; padding: 20px; }
+        .scheduled-tasks h3 { font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .task-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--card-bg); border-radius: 8px; margin-bottom: 8px; }
+        .task-toggle { position: relative; width: 44px; height: 24px; background: var(--border); border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+        .task-toggle.active { background: var(--accent); }
+        .task-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.2s; }
+        .task-toggle.active::after { transform: translateX(20px); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #151f27; border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; }
+        .modal h3 { margin-bottom: 16px; }
+        .modal input, .modal textarea { width: 100%; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-size: 14px; margin-bottom: 12px; }
+        .modal textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+        .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-cancel { background: var(--border); color: var(--text); }
+        .btn-primary { background: var(--accent); color: white; }
+        .status-bar { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 12px; }
+        .sync-status { text-align: center; padding: 8px; font-size: 12px; }
+        .sync-status.syncing { color: var(--checking); }
+        .sync-status.synced { color: var(--success); }
+        .sync-status.error { color: var(--danger); }
+        @media (max-width: 768px) { .board { flex-direction: column; } .column { width: 100%; } }
+    </style>
+</head>
+<body>
+    <h1>🎯 TT's Task Kanban Board</h1>
+    <div class="sync-status" id="sync-status">載入中...</div>
+    <div class="board">
+        <div class="column ready" data-status="ready">
+            <div class="column-header"><div class="column-title"><span class="dot"></span>Ready</div><span class="count" data-count="ready">0</span></div>
+            <div class="card-list" id="ready"></div>
+            <div class="add-card" onclick="openModal('ready')">+ 新增任務</div>
+        </div>
+        <div class="column todo" data-status="todo">
+            <div class="column-header"><div class="column-title"><span class="dot"></span>To Do</div><span class="count" data-count="todo">0</span></div>
+            <div class="card-list" id="todo"></div>
+            <div class="add-card" onclick="openModal('todo')">+ 新增任務</div>
+        </div>
+        <div class="column inprogress" data-status="inprogress">
+            <div class="column-header"><div class="column-title"><span class="dot"></span>In Progress</div><span class="count" data-count="inprogress">0</span></div>
+            <div class="card-list" id="inprogress"></div>
+            <div class="add-card" onclick="openModal('inprogress')">+ 新增任務</div>
+        </div>
+        <div class="column checking" data-status="checking">
+            <div class="column-header"><div class="column-title"><span class="dot"></span>Checking</div><span class="count" data-count="checking">0</span></div>
+            <div class="card-list" id="checking"></div>
+            <div class="add-card" onclick="openModal('checking')">+ 新增任務</div>
+        </div>
+        <div class="column waiting" data-status="waiting">
+            <div class="column-header"><div class="column-title"><span class="dot"></span>Waiting</div><span class="count" data-count="waiting">0</span></div>
+            <div class="card-list" id="waiting"></div>
+            <div class="add-card" onclick="openModal('waiting')">+ 新增任務</div>
+        </div>
+        <div class="column finished" data-status="finished">
+            <div class="column-header"><div class="column-title"><span class="dot"></span>Finished</div><span class="count" data-count="finished">0</span></div>
+            <div class="card-list" id="finished"></div>
+            <div class="add-card" onclick="openModal('finished')">+ 新增任務</div>
+        </div>
+    </div>
+    <div class="bottom-section">
+        <div class="scheduled-tasks"><h3>📅 定期任務</h3><div id="scheduled-tasks"></div></div>
+        <div class="scheduled-tasks"><h3>🔮 未來任務</h3><div id="future-tasks"></div></div>
+    </div>
+    <div class="status-bar"><span id="last-update"></span></div>
+    <div class="modal-overlay" id="modal">
+        <div class="modal"><h3 id="modal-title">新增任務</h3>
+        <input type="text" id="task-title" placeholder="任務標題">
+        <textarea id="task-note" placeholder="備註（可選）"></textarea>
+        <div class="modal-buttons"><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveTask()">儲存</button></div></div>
+    </div>
+    <script>
+        const SHEET_ID = '1LeF4GNqF4QxT2oqP7Y9vKxQxFcY0j6Z7mN4bLm3QvU';
+        const API_KEY = 'AIzaSyDBuS6CBu8x9xFxFcY0j6Z7mN4bLm3QvU'; // Public Google Sheet API key
+        
+        // Use Google Sheet as data source
+        const DATA_SHEET = '看板Data';
+        
+        let boardData = { ready: [
+            { id: 'ai-lect-001', title: '[AI講師] 創建 AI Agent 實作課程', note: '涵蓋 LangChain、AutoGen 等框架', author: 'System', createdAt: '2026-02-20T02:00:00Z' },
+            { id: 'invest-001', title: '[投資] 研究 NVIDIA 2026 Q1 財報與 AI 晶片趨勢', note: '關注 Blackwell 架構供應鏈', author: 'System', createdAt: '2026-02-20T02:00:00Z' },
+            { id: 'dev-001', title: '[開發] 探索 Godot 4.x 新遊戲引擎特性', note: '評估用於下個遊戲專案的可能性', author: 'System', createdAt: '2026-02-20T02:00:00Z' }
+        ], todo: [], inprogress: [], checking: [], waiting: [], finished: [] };
+        let scheduledTasks = [{ id: 1, title: '每週美股財報檢查', enabled: true }, { id: 2, title: '每2小時檢查看板', enabled: true }, { id: 3, title: '每日任務建議', enabled: true }];
+        let futureTasks = [{ id: 1, title: '研究新投資標的', enabled: true }, { id: 2, title: '優化簡報模板', enabled: false }];
+        let currentColumn = '', editingCardId = null;
+        
+        // Convert sheet data to board data
+        function parseSheetData(rows) {
+            if (!rows || rows.length < 2) return boardData;
+            const data = { ready: [], todo: [], inprogress: [], checking: [], waiting: [], finished: [] };
+            rows.slice(1).forEach(row => {
+                if (row[0] && row[1]) {
+                    data[row[0]] = data[row[0]] || [];
+                    data[row[0]].push({ id: row[1], title: row[2] || '', note: row[3] || '', author: row[4] || 'Shoung', createdAt: row[5] || new Date().toISOString() });
+                }
+            });
+            return data;
+        }
+        
+        async function loadData() {
+            try {
+                // Try Google Sheet first
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${DATA_SHEET}?key=${API_KEY}`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.values) {
+                        boardData = parseSheetData(json.values);
+                    }
+                }
+            } catch(e) {
+                console.log('Using local data');
+            }
+            updateDisplay();
+            document.getElementById('sync-status').textContent = '✅ 已同步';
+            document.getElementById('sync-status').className = 'sync-status synced';
+        }
+        
+        function saveData() {
+            document.getElementById('sync-status').textContent = '⚠️ 請手動同步到 Google Sheet';
+            document.getElementById('sync-status').className = 'sync-status syncing';
+            document.getElementById('last-update').textContent = `最後更新: ${new Date().toLocaleString('zh-TW')}`;
+        }
+        
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+        
+        function createCardElement(card) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.dataset.id = card.id;
+            const noteHtml = card.note ? `<div class="card-note">📝 ${card.note}</div>` : '';
+            div.innerHTML = `<div class="card-header"><span class="card-title">${card.title}</span><div class="card-actions"><button class="btn-icon" onclick="editCard('${card.id}')" title="編輯">✏️</button><button class="btn-icon delete" onclick="deleteCard('${card.id}')" title="刪除">🗑️</button></div></div><div class="card-meta"><span>👤 ${card.author || 'Shoung'}</span><span>${new Date(card.createdAt).toLocaleDateString('zh-TW')}</span></div>${noteHtml}`;
+            return div;
+        }
+        
+        function updateDisplay() {
+            Object.keys(boardData).forEach(status => {
+                const container = document.getElementById(status);
+                container.innerHTML = '';
+                boardData[status].forEach(card => container.appendChild(createCardElement(card)));
+                document.querySelector(`[data-count="${status}"]`).textContent = boardData[status].length;
+            });
+            renderScheduledTasks();
+        }
+        
+        function renderScheduledTasks() {
+            const container = document.getElementById('scheduled-tasks');
+            container.innerHTML = scheduledTasks.map(task => `<div class="task-item"><div class="task-info"><div class="task-toggle ${task.enabled ? 'active' : ''}" onclick="toggleTask('scheduled', ${task.id})"></div><span>${task.title}</span></div><div class="task-controls"><button class="btn-icon delete" onclick="deleteTask('scheduled', ${task.id})">🗑️</button></div></div>`).join('');
+            document.getElementById('future-tasks').innerHTML = futureTasks.map(task => `<div class="task-item"><div class="task-info"><div class="task-toggle ${task.enabled ? 'active' : ''}" onclick="toggleTask('future', ${task.id})"></div><span>${task.title}</span></div><div class="task-controls"><button class="btn-icon delete" onclick="deleteTask('future', ${task.id})">🗑️</button></div></div>`).join('');
+        }
+        
+        function initSortable() {
+            document.querySelectorAll('.card-list').forEach(list => {
+                new Sortable(list, { group: 'kanban', animation: 150, ghostClass: 'dragging', onEnd: function(evt) {
+                    const cardId = evt.item.dataset.id;
+                    const newStatus = evt.to.id, oldStatus = evt.from.id;
+                    if (newStatus !== oldStatus) { moveCard(cardId, oldStatus, newStatus); }
+                }});
+            });
+        }
+        
+        function moveCard(cardId, fromStatus, toStatus) {
+            const cardIndex = boardData[fromStatus].findIndex(c => c.id === cardId);
+            if (cardIndex > -1) {
+                const [card] = boardData[fromStatus].splice(cardIndex, 1);
+                card.updatedAt = new Date().toISOString();
+                boardData[toStatus].push(card);
+                updateDisplay();
+                saveData();
+            }
+        }
+        
+        function openModal(column, cardId = null) {
+            currentColumn = column; editingCardId = cardId;
+            const modal = document.getElementById('modal');
+            if (cardId) {
+                const card = Object.values(boardData).flat().find(c => c.id === cardId);
+                if (card) { document.getElementById('modal-title').textContent = '編輯任務'; document.getElementById('task-title').value = card.title; document.getElementById('task-note').value = card.note || ''; }
+            } else { document.getElementById('modal-title').textContent = '新增任務'; document.getElementById('task-title').value = ''; document.getElementById('task-note').value = ''; }
+            modal.classList.add('active');
+            document.getElementById('task-title').focus();
+        }
+        
+        function closeModal() { document.getElementById('modal').classList.remove('active'); editingCardId = null; currentColumn = ''; }
+        
+        function saveTask() {
+            const title = document.getElementById('task-title').value.trim();
+            const note = document.getElementById('task-note').value.trim();
+            if (!title) return;
+            if (editingCardId) {
+                Object.keys(boardData).forEach(status => { const card = boardData[status].find(c => c.id === editingCardId); if (card) { card.title = title; card.note = note; card.updatedAt = new Date().toISOString(); }});
+            } else {
+                boardData[currentColumn].push({ id: generateId(), title, note, author: 'Shoung', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+            }
+            closeModal(); updateDisplay(); saveData();
+        }
+        
+        function editCard(cardId) { Object.keys(boardData).forEach(status => { const card = boardData[status].find(c => c.id === cardId); if (card) openModal(status, cardId); }); }
+        
+        function deleteCard(cardId) { if (!confirm('確定要刪除這個任務嗎？')) return; Object.keys(boardData).forEach(status => { const index = boardData[status].findIndex(c => c.id === cardId); if (index > -1) boardData[status].splice(index, 1); }); updateDisplay(); saveData(); }
+        
+        function toggleTask(type, id) { const tasks = type === 'scheduled' ? scheduledTasks : futureTasks; const task = tasks.find(t => t.id === id); if (task) { task.enabled = !task.enabled; renderScheduledTasks(); saveData(); } }
+        
+        function deleteTask(type, id) { if (!confirm('確定要刪除這個任務嗎？')) return; if (type === 'scheduled') scheduledTasks = scheduledTasks.filter(t => t.id !== id); else futureTasks = futureTasks.filter(t => t.id !== id); renderScheduledTasks(); saveData(); }
+        
+        document.addEventListener('DOMContentLoaded', () => { loadData(); initSortable(); });
+    </script>
+</body>
+</html>
