@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenClaw 工作看板</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Noto Sans TC', sans-serif;
       background: #1a1a2e;
       color: #eee;
       min-height: 100vh;
@@ -23,7 +25,12 @@
       border-radius: 12px;
     }
     h1 { font-size: 1.5rem; color: #e94560; }
-    .header-actions { display: flex; gap: 10px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .sync-status { font-size: 0.8rem; color: #666; }
+    .sync-status.synced { color: #27ae60; }
+    .sync-status.syncing { color: #f39c12; }
+    .sync-status.error { color: #e74c3c; }
+    
     .btn {
       padding: 10px 20px;
       border: none;
@@ -35,9 +42,7 @@
     .btn-primary { background: #e94560; color: white; }
     .btn-primary:hover { background: #d63d56; }
     .btn-secondary { background: #0f3460; color: white; }
-    .btn-secondary:hover { background: #1a4a7a; }
     .btn-success { background: #27ae60; color: white; }
-    .btn-warning { background: #f39c12; color: white; }
     
     .board {
       display: flex;
@@ -60,10 +65,7 @@
       padding-bottom: 12px;
       border-bottom: 2px solid #0f3460;
     }
-    .column-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
+    .column-title { font-size: 1.1rem; font-weight: 600; }
     .column-count {
       background: #0f3460;
       padding: 4px 10px;
@@ -117,11 +119,7 @@
       border-radius: 0 4px 4px 0;
       font-size: 0.85rem;
     }
-    .card-remark-label {
-      font-size: 0.7rem;
-      color: #f39c12;
-      margin-bottom: 4px;
-    }
+    .card-remark-label { font-size: 0.7rem; color: #f39c12; margin-bottom: 4px; }
     
     .card-meta {
       display: flex;
@@ -131,11 +129,7 @@
       color: #666;
     }
     
-    .card-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px;
-    }
+    .card-actions { display: flex; gap: 6px; margin-top: 8px; }
     .card-action-btn {
       padding: 4px 8px;
       font-size: 0.75rem;
@@ -208,7 +202,6 @@
       padding: 40px 20px;
     }
     
-    /* Recurring Tasks Section */
     .recurring-section {
       margin-top: 40px;
       padding: 20px;
@@ -221,15 +214,8 @@
       align-items: center;
       margin-bottom: 20px;
     }
-    .recurring-title {
-      font-size: 1.2rem;
-      color: #e94560;
-    }
-    .recurring-tasks {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
+    .recurring-title { font-size: 1.2rem; color: #e94560; }
+    .recurring-tasks { display: flex; flex-wrap: wrap; gap: 12px; }
     .recurring-task {
       display: flex;
       align-items: center;
@@ -270,13 +256,8 @@
     }
     .recurring-task-delete:hover { color: #e94560; }
     
-    .add-recurring-form {
-      display: flex;
-      gap: 10px;
-      margin-top: 16px;
-    }
+    .add-recurring-form { display: flex; gap: 10px; margin-top: 16px; }
     
-    /* Modal */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -299,20 +280,9 @@
       max-height: 80vh;
       overflow-y: auto;
     }
-    .modal-title {
-      font-size: 1.2rem;
-      margin-bottom: 20px;
-      color: #e94560;
-    }
-    .modal-field {
-      margin-bottom: 16px;
-    }
-    .modal-label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-      color: #aaa;
-    }
+    .modal-title { font-size: 1.2rem; margin-bottom: 20px; color: #e94560; }
+    .modal-field { margin-bottom: 16px; }
+    .modal-label { display: block; margin-bottom: 6px; font-size: 0.9rem; color: #aaa; }
     .modal-input, .modal-textarea {
       width: 100%;
       padding: 10px;
@@ -331,19 +301,16 @@
       margin-top: 20px;
     }
     
-    .last-updated {
-      text-align: center;
-      margin-top: 30px;
-      color: #555;
-      font-size: 0.85rem;
-    }
+    .last-updated { text-align: center; margin-top: 30px; color: #555; font-size: 0.85rem; }
   </style>
 </head>
 <body>
   <header>
     <h1>📋 OpenClaw 工作看板</h1>
     <div class="header-actions">
+      <span class="sync-status" id="sync-status">☁️ 同步中...</span>
       <button class="btn btn-secondary" onclick="exportData()">💾 匯出</button>
+      <button class="btn btn-secondary" onclick="forceSync()">🔄 強制同步</button>
     </div>
   </header>
   
@@ -376,9 +343,6 @@
       </div>
       <div class="cards" id="todo" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'todo')">
         <div class="empty-state" id="todo-empty">尚無待辦事項</div>
-      </div>
-      <div class="add-card-form">
-        <input type="text" class="add-card-input" id="todo-input" placeholder="+ 新增..." onkeypress="handleKeyPress(event, 'todo')">
       </div>
     </div>
     
@@ -423,7 +387,6 @@
     </div>
   </div>
   
-  <!-- Recurring Tasks Section -->
   <div class="recurring-section">
     <div class="recurring-header">
       <span class="recurring-title">🔄 TT 的定期任務</span>
@@ -437,7 +400,6 @@
   
   <div class="last-updated" id="last-updated"></div>
 
-  <!-- Edit Modal -->
   <div class="modal-overlay" id="edit-modal">
     <div class="modal">
       <div class="modal-title">編輯任務</div>
@@ -468,34 +430,42 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'openclaw-kanban-data';
-    const RECURRING_KEY = 'openclaw-recurring-tasks';
+    // GitHub 設定 - 使用 Raw URL 讀取，API 寫入
+    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/shoung/kanban-board/main/tasks.json';
+    const GITHUB_API_URL = 'https://api.github.com/repos/shoung/kanban-board/contents/tasks.json';
+    const GITHUB_TOKEN = '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';
+    
     let cards = [];
     let recurringTasks = [];
     let draggedCard = null;
     let editingCardId = null;
+    let currentSha = null;
     
     // 初始化
-    function init() {
-      loadData();
+    async function init() {
+      setSyncStatus('syncing', '☁️ 同步中...');
+      await loadFromGitHub();
       render();
+      setSyncStatus('synced', '✅ 已同步');
     }
     
-    // 載入資料
-    function loadData() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        cards = JSON.parse(saved);
-      } else {
+    // 從 GitHub 載入資料
+    async function loadFromGitHub() {
+      try {
+        // 先用 raw URL 讀取
+        const response = await fetch(GITHUB_RAW_URL);
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        
+        cards = data.cards || [];
+        recurringTasks = data.recurringTasks || [];
+        document.getElementById('last-updated').textContent = `最後更新: ${new Date().toLocaleString('zh-TW')}`;
+      } catch (e) {
+        console.error('Load failed, using defaults:', e);
+        // 使用預設值
         cards = [
-          { id: 1, title: '歡迎使用看板', desc: '拖曳卡片來管理任務', remark: '', column: 'ready', creator: 'Shoung', createdAt: new Date().toISOString() }
+          { id: 1, title: '歡迎使用看板', desc: '資料已同步到 GitHub！', remark: '', column: 'ready', creator: 'Shoung', createdAt: new Date().toISOString() }
         ];
-      }
-      
-      const savedRecurring = localStorage.getItem(RECURRING_KEY);
-      if (savedRecurring) {
-        recurringTasks = JSON.parse(savedRecurring);
-      } else {
         recurringTasks = [
           { id: 1, name: '每2小時檢查看板', active: true },
           { id: 2, name: '每週 ProductHunt 靈感搜尋', active: true }
@@ -503,11 +473,69 @@
       }
     }
     
-    // 儲存資料
-    function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-      localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringTasks));
-      document.getElementById('last-updated').textContent = `最後更新: ${new Date().toLocaleString('zh-TW')}`;
+    // 儲存到 GitHub
+    async function saveToGitHub() {
+      setSyncStatus('syncing', '☁️ 同步中...');
+      
+      try {
+        // 先取得目前的 SHA
+        const getResponse = await fetch(GITHUB_API_URL, {
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+        });
+        if (getResponse.ok) {
+          const getData = await getResponse.json();
+          currentSha = getData.sha;
+        }
+        
+        const data = {
+          cards: cards,
+          recurringTasks: recurringTasks,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+        
+        const saveResponse = await fetch(GITHUB_API_URL, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Update tasks - ${new Date().toLocaleString('zh-TW')}`,
+            content: content,
+            sha: currentSha
+          })
+        });
+        
+        if (!saveResponse.ok) {
+          throw new Error('Failed to save');
+        }
+        
+        const result = await saveResponse.json();
+        currentSha = result.content.sha;
+        
+        setSyncStatus('synced', '✅ 已同步');
+        document.getElementById('last-updated').textContent = `最後同步: ${new Date().toLocaleString('zh-TW')}`;
+      } catch (e) {
+        console.error('Save failed:', e);
+        setSyncStatus('error', '❌ 同步失敗');
+        // 改用 localStorage 備份
+        localStorage.setItem('openclaw-kanban-data', JSON.stringify({ cards, recurringTasks }));
+      }
+    }
+    
+    // 強制同步
+    async function forceSync() {
+      await loadFromGitHub();
+      render();
+      await saveToGitHub();
+    }
+    
+    function setSyncStatus(status, text) {
+      const el = document.getElementById('sync-status');
+      el.className = `sync-status ${status}`;
+      el.textContent = text;
     }
     
     // 渲染看板
@@ -517,16 +545,13 @@
         const container = document.getElementById(column);
         const columnCards = cards.filter(c => c.column === column);
         
-        // 更新數量
         document.getElementById(`${column}-count`).textContent = columnCards.length;
         
-        // 顯示/隱藏空狀態
         const emptyState = document.getElementById(`${column}-empty`);
         if (emptyState) {
           emptyState.style.display = columnCards.length === 0 ? 'block' : 'none';
         }
         
-        // 渲染卡片
         const cardsHtml = columnCards.map(card => `
           <div class="card" draggable="true" ondragstart="handleDragStart(event, ${card.id})" ondragend="handleDragEnd(event)">
             <button class="card-delete" onclick="deleteCard(${card.id})">×</button>
@@ -551,15 +576,12 @@
           </div>
         `).join('');
         
-        // Keep the empty state element
         container.innerHTML = cardsHtml + (document.getElementById(`${column}-empty`)?.outerHTML || '');
       });
       
-      // 渲染定期任務
       renderRecurringTasks();
     }
     
-    // 渲染定期任務
     function renderRecurringTasks() {
       const container = document.getElementById('recurring-tasks');
       container.innerHTML = recurringTasks.map(task => `
@@ -571,7 +593,6 @@
       `).join('');
     }
     
-    // 新增卡片
     function addCard(column) {
       const titleInput = document.getElementById(`${column}-title`);
       const descInput = document.getElementById(`${column}-desc`);
@@ -602,74 +623,64 @@
       };
       
       cards.push(card);
-      saveData();
+      saveToGitHub();
       render();
       
-      // 清除輸入
       if (titleInput) titleInput.value = '';
       if (descInput) descInput.value = '';
-      if (descInput = document.getElementById(`${column}-desc`)) descInput.value = '';
       const input = document.getElementById(`${column}-input`);
       if (input) input.value = '';
     }
     
-    // 刪除卡片
     function deleteCard(id) {
       if (!confirm('確定要刪除這個任務嗎？')) return;
       cards = cards.filter(c => c.id !== id);
-      saveData();
+      saveToGitHub();
       render();
     }
     
-    // 清除備註
     function clearRemark(id) {
       const card = cards.find(c => c.id === id);
       if (card) {
         card.remark = '';
-        saveData();
+        saveToGitHub();
         render();
       }
     }
     
-    // 拖曳開始
     function handleDragStart(event, id) {
       draggedCard = cards.find(c => c.id === id);
       event.target.classList.add('dragging');
     }
     
-    // 拖曳結束
     function handleDragEnd(event) {
       event.target.classList.remove('dragging');
       document.querySelectorAll('.column').forEach(col => col.classList.remove('drag-over'));
     }
     
-    // 拖曳經過
     function handleDragOver(event) {
       event.preventDefault();
       event.currentTarget.classList.add('drag-over');
     }
     
-    // 放置
     function handleDrop(event, column) {
       event.preventDefault();
       event.currentTarget.classList.remove('drag-over');
       
       if (draggedCard) {
         draggedCard.column = column;
-        saveData();
+        saveToGitHub();
         render();
         draggedCard = null;
       }
     }
     
-    // 鍵盤事件
     function handleKeyPress(event, column) {
       if (event.key === 'Enter') {
         addCard(column);
       }
     }
     
-    // 開啟編輯 Modal
     function openEditModal(id) {
       editingCardId = id;
       const card = cards.find(c => c.id === id);
@@ -682,13 +693,11 @@
       document.getElementById('edit-modal').classList.add('show');
     }
     
-    // 關閉 Modal
     function closeModal() {
       document.getElementById('edit-modal').classList.remove('show');
       editingCardId = null;
     }
     
-    // 儲存 Modal
     function saveModal() {
       if (!editingCardId) return;
       
@@ -698,13 +707,12 @@
         card.desc = document.getElementById('modal-desc').value.trim();
         card.remark = document.getElementById('modal-remark').value.trim();
         card.creator = document.getElementById('modal-creator').value;
-        saveData();
+        saveToGitHub();
         render();
       }
       closeModal();
     }
     
-    // 新增定期任務
     function addRecurringTask() {
       const input = document.getElementById('recurring-task-input');
       const name = input.value.trim();
@@ -715,30 +723,27 @@
         name: name,
         active: true
       });
-      saveData();
+      saveToGitHub();
       renderRecurringTasks();
       input.value = '';
     }
     
-    // 切換定期任務
     function toggleRecurringTask(id) {
       const task = recurringTasks.find(t => t.id === id);
       if (task) {
         task.active = !task.active;
-        saveData();
+        saveToGitHub();
         renderRecurringTasks();
       }
     }
     
-    // 刪除定期任務
     function deleteRecurringTask(id) {
       if (!confirm('確定要刪除這個定期任務嗎？')) return;
       recurringTasks = recurringTasks.filter(t => t.id !== id);
-      saveData();
+      saveToGitHub();
       renderRecurringTasks();
     }
     
-    // 匯出資料
     function exportData() {
       const data = {
         cards: cards,
@@ -754,7 +759,6 @@
       URL.revokeObjectURL(url);
     }
     
-    // 工具函數
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -765,6 +769,11 @@
       const date = new Date(dateStr);
       return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
     }
+    
+    // 自動每分鐘同步
+    setInterval(() => {
+      loadFromGitHub().then(() => render());
+    }, 60000);
     
     init();
   </script>
